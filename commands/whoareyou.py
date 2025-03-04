@@ -29,10 +29,10 @@ class WhoAreYou(commands.Cog):
         embed.add_field(
             name="My Family",
             value=(
-                "**@Noda#9575** is my sister!\n"
-                "**@skylasjustvibin** is my mom!\n"
-		"**@lilac_aria_rose** is my other mom!\n"
-                "We're a happy little family! 💖"
+                "**<@875455409853460550>** is my sister!\n"
+                "**<@312984580745330688>** is my mom!\n"
+		        "**<@252130669919076352>** is my other mom!\n"
+                "We're a happy little family!"
             ),
             inline=False
         )
