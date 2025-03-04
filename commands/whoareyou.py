@@ -31,7 +31,7 @@ class WhoAreYou(commands.Cog):
             value=(
                 "**@Noda#9575** is my sister!\n"
                 "**@skylasjustvibin** is my mom!\n"
-		"**@lilac_rise_rose** is my other mom!\n"
+		"**@lilac_aria_rose** is my other mom!\n"
                 "We're a happy little family! 💖"
             ),
             inline=False
