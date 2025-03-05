@@ -4,6 +4,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from os import environ
 from database.db import init_db
+from tasks.daily_reminder import DailyReminder
 
 # Load environment variables
 load_dotenv()
@@ -32,6 +33,7 @@ async def load_extensions():
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
     await load_extensions()
+    DailyReminder(bot)
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
