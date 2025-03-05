@@ -60,4 +60,4 @@ class ForceSparkle(commands.Cog):
         self.bot.sparkles[server_id][user_id][reaction_type.lower()] += 1
         self.bot.save_sparkles(self.bot.sparkles)  # Save the updated data
 
-        await ctx.send(f"Added {emoji} reaction
+        await ctx.send(f"Added {emoji} reaction")
