@@ -61,3 +61,6 @@ class ForceSparkle(commands.Cog):
         self.bot.save_sparkles(self.bot.sparkles)  # Save the updated data
 
         await ctx.send(f"Added {emoji} reaction")
+
+async def setup(bot):
+     await bot.add_cog(ForceSparkle(bot))

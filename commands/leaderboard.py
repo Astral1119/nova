@@ -1,66 +1,90 @@
-# commands/forcesparkle.py
+# commands/leaderboard.py
 import discord
 from discord.ext import commands
+from discord import app_commands
+import json
+from pathlib import Path
 
-YOUR_USER_ID = 252130669919076352  # Your Discord user ID
+# Path to the JSON file
+SPARKLES_FILE = Path("json/sparkles.json")
 
-class ForceSparkle(commands.Cog):
+def load_sparkles():
+    """Load the sparkles data from the JSON file."""
+    if SPARKLES_FILE.exists():
+        with open(SPARKLES_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+class Leaderboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="forcesparkle", description="Force a sparkle reaction on a message (only for you)")
-    async def forcesparkle(self, ctx: commands.Context, message_id: str, reaction_type: str):
+    @app_commands.command(name="leaderboard", description="Show the sparkle leaderboard for this server")
+    @app_commands.describe(sparkle_type="The type of sparkle to show the leaderboard for")
+    async def leaderboard(self, interaction: discord.Interaction, sparkle_type: str):
         """
-        Forces a sparkle reaction on a message and updates the leaderboard.
+        Displays the leaderboard for a specific sparkle type in the current server.
         """
-        # Check if the user is you
-        if ctx.author.id != YOUR_USER_ID:
-            await ctx.send("You don't have permission to use this command.", ephemeral=True)
+        valid_types = ["epic", "rare", "regular"]
+        if sparkle_type.lower() not in valid_types:
+            await interaction.response.send_message(
+                "Invalid sparkle type. Use `epic`, `rare`, or `regular`.",
+                ephemeral=True
+            )
             return
 
-        # Validate reaction type
-        valid_reactions = {
-            "epic": "✨",
-            "rare": "🌟",
-            "regular": "⭐"
-        }
+        # Load sparkles data from the JSON file
+        sparkles = load_sparkles()
 
-        if reaction_type.lower() not in valid_reactions:
-            await ctx.send("Invalid reaction type. Use `epic`, `rare`, or `regular`.", ephemeral=True)
+        # Get the server's sparkle data
+        server_id = str(interaction.guild.id)
+        if server_id not in sparkles or not sparkles[server_id]:
+            await interaction.response.send_message(
+                "No sparkles have been awarded yet in this server.",
+                ephemeral=True
+            )
             return
 
-        # Fetch the message by ID
-        try:
-            message = await ctx.channel.fetch_message(int(message_id))
-        except discord.NotFound:
-            await ctx.send("Message not found. Make sure the message ID is correct and the message is in this channel.", ephemeral=True)
+        # Get the leaderboard for the specified sparkle type
+        leaderboard_data = []
+        for user_id, counts in sparkles[server_id].items():
+            if counts[sparkle_type] > 0:
+                leaderboard_data.append((user_id, counts[sparkle_type]))
+
+        # Sort the leaderboard by sparkle count (descending)
+        leaderboard_data.sort(key=lambda x: x[1], reverse=True)
+
+        if not leaderboard_data:
+            await interaction.response.send_message(
+                f"No {sparkle_type} sparkles have been awarded yet in this server.",
+                ephemeral=True
+            )
             return
-        except discord.Forbidden:
-            await ctx.send("I don't have permission to access that message.", ephemeral=True)
-            return
-        except ValueError:
-            await ctx.send("Invalid message ID. Please provide a valid message ID.", ephemeral=True)
-            return
 
-        # Add the reaction
-        emoji = valid_reactions[reaction_type.lower()]
-        await message.add_reaction(emoji)
+        # Format the leaderboard
+        leaderboard_text = []
+        for user_id, count in leaderboard_data[:10]:  # Top 10 users
+            user = await self.bot.fetch_user(int(user_id))
+            leaderboard_text.append(f"{user.name}: {count}")
 
-        # Update the leaderboard
-        server_id = str(ctx.guild.id)
-        user_id = str(message.author.id)
+        await interaction.response.send_message(
+            f"**{sparkle_type.capitalize()} Sparkle Leaderboard:**\n" + "\n".join(leaderboard_text),
+            ephemeral=False  # Make the response visible to everyone
+        )
 
-        # Initialize server data if it doesn't exist
-        if server_id not in self.bot.sparkles:
-            self.bot.sparkles[server_id] = {}
-        if user_id not in self.bot.sparkles[server_id]:
-            self.bot.sparkles[server_id][user_id] = {"epic": 0, "rare": 0, "regular": 0}
-
-        # Increment the sparkle count
-        self.bot.sparkles[server_id][user_id][reaction_type.lower()] += 1
-        self.bot.save_sparkles(self.bot.sparkles)  # Save the updated data
-
-        await ctx.send(f"Added {emoji} reaction to the message and updated the leaderboard!", ephemeral=True)
+    @leaderboard.autocomplete("sparkle_type")
+    async def sparkle_type_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ):
+        """
+        Provides autocomplete options for the sparkle_type argument.
+        """
+        valid_types = ["epic", "rare", "regular"]
+        return [
+            app_commands.Choice(name=sparkle_type, value=sparkle_type)
+            for sparkle_type in valid_types
+            if current.lower() in sparkle_type.lower()
+        ]
 
 async def setup(bot):
-    await bot.add_cog(ForceSparkle(bot))
+    await bot.add_cog(Leaderboard(bot))
